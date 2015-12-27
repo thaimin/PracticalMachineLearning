@@ -1,0 +1,78 @@
+---
+title: "Practical Machine Learning Assignment"
+author: Wong Thai Min
+date: "December 26, 2015"
+output: html_document
+---
+## Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+
+## Prepare the data
+```{r}
+options(warn=-1)
+download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv", method = "curl")
+download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "pml-testing.csv", method = "curl")
+train_data <- read.table("pml-training.csv", header = TRUE, sep = ",", na.strings = c("NA",""))
+test_data <- read.table("pml-testing.csv", header = TRUE, sep = ",", na.strings = c("NA",""))
+```
+
+
+## Data Cleansing
+Extract only the eligible predictors by:
+
+1. Filter out variables with NA values.
+2. Filter out non-measurement variables from accerelometers.
+```{r}
+isNA <- sapply(train_data, function(x) any(is.na(x)))
+isPredictor <- grepl("belt|arm|dumbbell|classe", names(train_data))
+train_data <- train_data[, !isNA & isPredictor]
+```
+
+
+## Data slicing
+Perform cross validation by splitting the training data into 60% train sets and 40% test sets.
+```{r}
+library(caret)
+inTrain <- createDataPartition(y = train_data$classe, p = 0.6, list = FALSE)
+training <- train_data[inTrain,]
+testing <- train_data[-inTrain,]
+dim(training); dim(testing)
+```
+
+
+##Prediction Model: Decision Trees (rpart algorithm)
+We try to use "rpart" algorithm from caret package to train a Decision Trees prediction model. 
+```{r}
+modFit <- train(classe ~ ., data = training, method = "rpart")
+print(modFit$finalModel)
+plot(modFit$finalModel, uniform=TRUE, main="Classification Tree")
+text(modFit$finalModel, use.n=TRUE, cex=.8)
+results <- predict(modFit, newdata = testing)
+confusionMatrix(results, testing$classe)
+```
+
+However, looks like the classe='D' was not able to be classified by this algirithm and the accuracy is too low < 50%.
+
+
+## Prediction Model: Random Forest
+We try to use Random Forest algorithm to train a Decision Trees prediction model. 
+```{r}
+library(randomForest)
+modFit_RF <- randomForest(classe ~ ., data = training)
+print(modFit_RF)
+plot(modFit_RF, uniform=TRUE, main="Random Forest")
+```
+
+Obviously, the error rate has significant reduced when the number of trees has grown > 50.
+
+```{r}
+results_RF <- predict(modFit_RF, newdata = testing)
+confusionMatrix(results_RF, testing$classe)
+```
+This time, all the activities (classe) could be predicted and the accuracy is very high > 99%.
+
+## Conclusion
+Random Forest is chosen because it has performed as a much stronger prediction model due to its bagging algorithms that boosted the prediction accuracy significantly.
+
+
