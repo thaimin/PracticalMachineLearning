@@ -52,7 +52,7 @@ results <- predict(modFit, newdata = testing)
 confusionMatrix(results, testing$classe)
 ```
 
-However, looks like the classe='D' was not able to be classified by this algirithm and the accuracy is too low < 50%.
+However, the accuracy of "rpart" algirithm is too low at only 55%.
 
 
 ## Prediction Model: Random Forest
@@ -64,7 +64,7 @@ print(modFit_RF)
 plot(modFit_RF, uniform=TRUE, main="Random Forest")
 ```
 
-Obviously, the error rate has significant reduced when the number of trees has grown > 50.
+Obviously, the error rate has significant reduced when the number of trees has grown approximately >= 50.
 
 ```{r}
 results_RF <- predict(modFit_RF, newdata = testing)
@@ -76,3 +76,8 @@ This time, all the activities (classe) could be predicted and the accuracy is ve
 Random Forest is chosen because it has performed as a much stronger prediction model due to its bagging algorithms that boosted the prediction accuracy significantly.
 
 
+```{r}
+answers <- predict(modFit_RF, newdata = test_data)
+source("pml_write_files.R")
+pml_write_files(answers)
+```
